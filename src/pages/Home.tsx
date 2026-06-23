@@ -22,6 +22,17 @@ const App = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Booking Form States
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    room_type: 'Non-AC Room',
+    date: '',
+    guests: '2'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -29,6 +40,44 @@ const App = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Form Submission Handler
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      // API call to send notification email
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const resData = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus({
+          success: true,
+          message: '🚩 Jai Shree Ram! Aapki booking request darj ho gayi hai. Hum aapse jald sampark karenge.'
+        });
+        // Clear Form
+        setFormData({ name: '', phone: '', room_type: 'Non-AC Room', date: '', guests: '2' });
+      } else {
+        throw new Error(resData.error || 'Kuch galat hua');
+      }
+    } catch (error: any) {
+      setSubmitStatus({
+        success: false,
+        message: `Error: ${error.message || 'Server tak request nahi pahonchi.'}`
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const stats = [
     { label: 'Lives Impacted', value: '50,000+', icon: Users },
@@ -72,7 +121,7 @@ const App = () => {
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
-              {['Home', 'About', 'Initiatives', 'Impact', 'Events', 'Contact'].map((item) => (
+              {['Home', 'About', 'Initiatives', 'Booking', 'Impact', 'Events', 'Contact'].map((item) => (
                 <a 
                   key={item} 
                   href={`#${item.toLowerCase()}`}
@@ -97,11 +146,11 @@ const App = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        /* Mobile Menu */
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {['Home', 'About', 'Initiatives', 'Impact', 'Events', 'Contact'].map((item) => (
+              {['Home', 'About', 'Initiatives', 'Booking', 'Impact', 'Events', 'Contact'].map((item) => (
                 <a
                   key={item}
                   href={`#${item.toLowerCase()}`}
@@ -141,10 +190,10 @@ const App = () => {
               healthcare, and sustainable development. Join us in making a lasting impact.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-orange-600 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center hover:bg-orange-700 transition-all group">
-                Support Our Mission
+              <a href="#booking" className="bg-orange-600 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center hover:bg-orange-700 transition-all group text-center">
+                Book Dharamshala Room
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              </a>
               <button className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center hover:bg-white/20 transition-all">
                 Learn More
               </button>
@@ -266,8 +315,101 @@ const App = () => {
         </div>
       </section>
 
+      {/* 🚩 NEW FEATURE: Room Booking Section */}
+      <section id="booking" className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-sm font-bold text-orange-600 uppercase tracking-widest mb-3">Dharamshala Seva</h2>
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Request Room Booking</h3>
+            <p className="text-slate-600 max-w-xl mx-auto">
+              Sitaram Seva Sadan mein rukne ke liye apni details niche fill karein. Aapki request seedhe trust office bhej di jayegi.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 p-8 md:p-12 rounded-3xl shadow-md">
+            <form onSubmit={handleBookingSubmit} className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Yatri ka Naam (Full Name)</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Enter your name" 
+                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Mobile Number</label>
+                  <input 
+                    type="tel" 
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="Enter 10-digit number" 
+                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Room Type</label>
+                  <select 
+                    value={formData.room_type}
+                    onChange={(e) => setFormData({...formData, room_type: e.target.value})}
+                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  >
+                    <option value="Non-AC Room">Non-AC Room</option>
+                    <option value="AC Room">AC Room</option>
+                    <option value="Family Suite">Family Suite</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Check-in Date</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Total Guests</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="20"
+                    required
+                    value={formData.guests}
+                    onChange={(e) => setFormData({...formData, guests: e.target.value})}
+                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              {submitStatus && (
+                <div className={`p-4 rounded-xl text-center text-sm font-medium ${submitStatus.success ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                  {submitStatus.message}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full bg-orange-600 text-white font-bold py-4 rounded-xl hover:bg-orange-700 transition-colors flex items-center justify-center disabled:bg-orange-400"
+              >
+                {isSubmitting ? 'Sending Request...' : 'Send Booking Request'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-24">
+      <section className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-orange-600 rounded-[3rem] p-12 md:p-20 relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
