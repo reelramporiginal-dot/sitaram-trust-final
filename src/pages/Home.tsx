@@ -41,38 +41,115 @@ const App = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Form Submission Handler
+  // ============================================
+  // ✅ UPDATED: Booking Form Submit Handler
+  // Ab Email + WhatsApp dono notification aayega
+  // ============================================
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
 
+    // Unique Booking ID generate karo
+    const bookingId = 'BKG-' + Math.floor(1000 + Math.random() * 9000);
+    const currentTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
     try {
-      // API call to send notification email
-      const response = await fetch('/api/send-email', {
+      // =============================================
+      // ✅ STEP 1: EMAIL NOTIFICATION (Web3Forms FREE)
+      // Admin ke email pe booking details jayegi
+      // =============================================
+      const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_key: 'YOUR_WEB3FORMS_ACCESS_KEY',  // ⚠️ APNI KEY YAHAN DALEIN (niche setup guide hai)
+          subject: `🚩 New Booking: ${bookingId} - ${formData.name}`,
+          from_name: 'Shri Sitaram Seva Trust - Booking System',
+          booking_id: bookingId,
+          guest_name: formData.name,
+          phone: formData.phone,
+          room_type: formData.room_type,
+          checkin_date: formData.date,
+          total_guests: formData.guests,
+          booking_time: currentTime,
+          message: [
+            '🚩 SHRI SITARAM SEVA TRUST',
+            '━━━━━━━━━━━━━━━━━━━━━━━',
+            'NEW BOOKING RECEIVED!',
+            '',
+            `📋 Booking ID: ${bookingId}`,
+            `👤 Guest Name: ${formData.name}`,
+            `📞 Phone: ${formData.phone}`,
+            `🏨 Room Type: ${formData.room_type}`,
+            `📅 Check-in Date: ${formData.date}`,
+            `👥 Total Guests: ${formData.guests}`,
+            `⏰ Booking Time: ${currentTime}`,
+            '',
+            '━━━━━━━━━━━━━━━━━━━━━━━',
+            'Kripya yatri se jald sampark karein.',
+          ].join('\n'),
+        }),
       });
 
-      const resData = await response.json();
+      const result = await response.json();
 
-      if (response.ok) {
+      if (result.success) {
+        // =============================================
+        // ✅ STEP 2: WHATSAPP NOTIFICATION (CallMeBot FREE)
+        // Reception ke WhatsApp pe message jayega
+        // =============================================
+        try {
+          const whatsappMsg = encodeURIComponent(
+            [
+              '🚩 *Shri Sitaram Seva Trust*',
+              '*━━ New Booking Alert! ━━*',
+              '',
+              `📋 *Booking ID:* ${bookingId}`,
+              `👤 *Name:* ${formData.name}`,
+              `📞 *Phone:* ${formData.phone}`,
+              `🏨 *Room:* ${formData.room_type}`,
+              `📅 *Date:* ${formData.date}`,
+              `👥 *Guests:* ${formData.guests}`,
+              `⏰ *Time:* ${currentTime}`,
+              '',
+              '_Kripya yatri se sampark karein._',
+            ].join('\n')
+          );
+
+          // Reception Number 1
+          fetch(
+            `https://api.callmebot.com/whatsapp.php?phone=919918310009&text=${whatsappMsg}&apikey=YOUR_CALLMEBOT_API_KEY`,
+            { mode: 'no-cors' }
+          ).catch(() => {});
+
+          // Reception Number 2 (optional - agar dono numbers pe chahiye)
+          fetch(
+            `https://api.callmebot.com/whatsapp.php?phone=918303333309&text=${whatsappMsg}&apikey=YOUR_CALLMEBOT_API_KEY_2`,
+            { mode: 'no-cors' }
+          ).catch(() => {});
+
+        } catch {
+          // WhatsApp fail hua toh bhi booking confirm rahegi
+        }
+
+        // ✅ SUCCESS: User ko message dikhao
         setSubmitStatus({
           success: true,
-          message: '🚩 Jai Shree Ram! Aapki booking request darj ho gayi hai. Hum aapse jald sampark karenge.'
+          message: `🚩 Jai Shree Ram! Booking ID: ${bookingId} - Aapki booking request darj ho gayi hai. Hum aapse jald sampark karenge. 📞`,
         });
-        // Clear Form
+
+        // Form clear karo
         setFormData({ name: '', phone: '', room_type: 'Non-AC Room', date: '', guests: '2' });
+
       } else {
-        throw new Error(resData.error || 'Kuch galat hua');
+        throw new Error('Email bhejne mein problem aayi');
       }
     } catch (error: any) {
+      // ❌ ERROR: User ko phone number dikhao
       setSubmitStatus({
         success: false,
-        message: `Error: ${error.message || 'Server tak request nahi pahonchi.'}`
+        message: `Booking request bhejne mein error hua. Kripya seedhe call karein: 📞 9918310009 ya 8303333309`,
       });
     } finally {
       setIsSubmitting(false);
@@ -146,7 +223,7 @@ const App = () => {
           </div>
         </div>
 
-        /* Mobile Menu */
+        {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t">
             <div className="px-2 pt-2 pb-3 space-y-1">
@@ -253,9 +330,9 @@ const App = () => {
               Creating Sustainable Change in Every Community We Serve
             </h3>
             <p className="text-slate-600 text-lg mb-8 leading-relaxed">
-              We believe that every person deserves the opportunity to thrive. Our approach 
+              Shri Sitaram Seva Trust, managed by <strong>Vijay Prakash Tiwari</strong>, believes that every person deserves the opportunity to thrive. Our approach 
               focuses on providing the tools and resources necessary for self-sufficiency, 
-              starting with foundational needs like education and health.
+              starting with foundational needs like education, health, and divine accommodation for Ayodhya Dhaam yatris.
             </p>
             <div className="space-y-4">
               {[
@@ -315,7 +392,7 @@ const App = () => {
         </div>
       </section>
 
-      {/* 🚩 NEW FEATURE: Room Booking Section */}
+      {/* 🚩 Room Booking Section */}
       <section id="booking" className="py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -401,7 +478,7 @@ const App = () => {
                 disabled={isSubmitting}
                 className="w-full bg-orange-600 text-white font-bold py-4 rounded-xl hover:bg-orange-700 transition-colors flex items-center justify-center disabled:bg-orange-400"
               >
-                {isSubmitting ? 'Sending Request...' : 'Send Booking Request'}
+                {isSubmitting ? 'Sending Request...' : '🚩 Send Booking Request'}
               </button>
             </form>
           </div>
@@ -432,8 +509,50 @@ const App = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white pt-20 pb-10 border-t">
+      {/* ✅ NEW: Policies Section (Cashfree KYC ke liye zaroori hai) */}
+      <section id="policies" className="py-16 bg-white border-t">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-2xl font-bold text-slate-900 mb-8 text-center">Trust Policies</h3>
+          
+          <div className="space-y-6">
+            <div className="bg-slate-50 p-6 rounded-2xl border">
+              <h4 className="font-bold text-slate-900 mb-3 text-lg">📋 Privacy Policy</h4>
+              <div className="text-slate-600 text-sm space-y-2">
+                <p>Shri Sitaram Seva Trust ("we", "us") respects your privacy. This policy explains how we collect, use, and protect your personal information.</p>
+                <p><strong>Information We Collect:</strong> Name, phone number, email address, and booking details when you make a reservation through our website.</p>
+                <p><strong>How We Use It:</strong> To process your room booking, send confirmation messages, and contact you regarding your stay.</p>
+                <p><strong>Data Protection:</strong> Your personal data is stored securely and is never shared with third parties without your consent.</p>
+                <p><strong>Contact:</strong> For any privacy-related queries, contact Vijay Prakash Tiwari at 9918310009.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-2xl border">
+              <h4 className="font-bold text-slate-900 mb-3 text-lg">📜 Terms & Conditions</h4>
+              <div className="text-slate-600 text-sm space-y-2">
+                <p><strong>Business Name:</strong> Shri Sitaram Seva Trust</p>
+                <p><strong>Proprietor:</strong> Vijay Prakash Tiwari</p>
+                <p><strong>Address:</strong> Luvkushnagar, Ramghat, Ayodhya Dhaam, Uttar Pradesh, India</p>
+                <p><strong>Booking:</strong> All bookings are subject to room availability. A booking request does not guarantee confirmation until verified by our team.</p>
+                <p><strong>Check-in/Check-out:</strong> Standard check-in time is 12:00 PM and check-out is 11:00 AM.</p>
+                <p><strong>Conduct:</strong> Guests are expected to maintain decorum befitting a dharmik sthal.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-2xl border">
+              <h4 className="font-bold text-slate-900 mb-3 text-lg">💰 Refund & Cancellation Policy</h4>
+              <div className="text-slate-600 text-sm space-y-2">
+                <p><strong>Cancellation:</strong> Free cancellation up to 24 hours before check-in date. Cancellations within 24 hours may attract a charge.</p>
+                <p><strong>Refund:</strong> Refunds for eligible cancellations will be processed within 5-7 business days to the original payment method.</p>
+                <p><strong>No-Show:</strong> In case of no-show without prior cancellation, the full booking amount may be forfeited.</p>
+                <p><strong>Contact for Cancellation:</strong> Call 9918310009 or 8303333309.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - ✅ UPDATED: Legal name added */}
+      <footer id="contact" className="bg-white pt-20 pb-10 border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
             <div className="col-span-2">
@@ -443,9 +562,14 @@ const App = () => {
                 </div>
                 <span className="text-xl font-bold text-slate-900">SITARAM TRUST</span>
               </div>
-              <p className="text-slate-500 max-w-xs leading-relaxed mb-8">
-                Empowering communities and building bridges to a brighter, more sustainable future for all.
+              <p className="text-slate-500 max-w-xs leading-relaxed mb-4">
+                Shri Sitaram Seva Trust, managed by <strong className="text-slate-700">Vijay Prakash Tiwari</strong>, is dedicated to empowering communities and providing divine stay for Ayodhya Dhaam yatris.
               </p>
+              <div className="text-slate-500 text-sm space-y-1 mb-6">
+                <p>📍 Luvkushnagar, Ramghat, Ayodhya Dhaam, UP</p>
+                <p>📞 9918310009, 8303333309</p>
+                <p>📞 Helpline: 05278-424511</p>
+              </div>
               <div className="flex space-x-4">
                 {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
                   <a key={i} href="#" className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-orange-600 hover:text-white transition-all">
@@ -483,12 +607,16 @@ const App = () => {
             </div>
           </div>
           
+          {/* ✅ UPDATED: Copyright with legal name */}
           <div className="pt-8 border-t flex flex-col md:flex-row justify-between items-center text-slate-500 text-sm">
-            <p>© 2024 Sitaram Trust. All rights reserved.</p>
+            <div>
+              <p>© 2025 Shri Sitaram Seva Trust. All rights reserved.</p>
+              <p className="text-xs mt-1">Proprietor: <strong>Vijay Prakash Tiwari</strong> | Luvkushnagar, Ramghat, Ayodhya Dhaam</p>
+            </div>
             <div className="flex space-x-8 mt-4 md:mt-0">
-              <a href="#" className="hover:text-orange-600">Privacy Policy</a>
-              <a href="#" className="hover:text-orange-600">Terms of Service</a>
-              <a href="#" className="hover:text-orange-600">Cookie Policy</a>
+              <a href="#policies" className="hover:text-orange-600">Privacy Policy</a>
+              <a href="#policies" className="hover:text-orange-600">Terms of Service</a>
+              <a href="#policies" className="hover:text-orange-600">Refund Policy</a>
             </div>
           </div>
         </div>
