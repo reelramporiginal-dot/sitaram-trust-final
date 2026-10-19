@@ -1,7 +1,12 @@
 {
+  "functions": {
+    "api/post-facebook.js": {
+      "includeFiles": "data/**"
+    }
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
