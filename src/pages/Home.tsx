@@ -55,84 +55,24 @@ const App = () => {
     const currentTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
     try {
-      // =============================================
-      // ✅ STEP 1: EMAIL NOTIFICATION (Web3Forms FREE)
-      // Admin ke email pe booking details jayegi
-      // =============================================
-      const response = await fetch('https://api.web3forms.com/submit', {
+      // Server-side API: Email (Resend) + WhatsApp (optional) dono yahin se jaate hain
+      const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          access_key: 'YOUR_WEB3FORMS_ACCESS_KEY',  // ⚠️ APNI KEY YAHAN DALEIN (niche setup guide hai)
-          subject: `🚩 New Booking: ${bookingId} - ${formData.name}`,
-          from_name: 'Shri Sitaram Seva Trust - Booking System',
-          booking_id: bookingId,
-          guest_name: formData.name,
+          bookingId,
+          name: formData.name,
           phone: formData.phone,
           room_type: formData.room_type,
-          checkin_date: formData.date,
-          total_guests: formData.guests,
-          booking_time: currentTime,
-          message: [
-            '🚩 SHRI SITARAM SEVA TRUST',
-            '━━━━━━━━━━━━━━━━━━━━━━━',
-            'NEW BOOKING RECEIVED!',
-            '',
-            `📋 Booking ID: ${bookingId}`,
-            `👤 Guest Name: ${formData.name}`,
-            `📞 Phone: ${formData.phone}`,
-            `🏨 Room Type: ${formData.room_type}`,
-            `📅 Check-in Date: ${formData.date}`,
-            `👥 Total Guests: ${formData.guests}`,
-            `⏰ Booking Time: ${currentTime}`,
-            '',
-            '━━━━━━━━━━━━━━━━━━━━━━━',
-            'Kripya yatri se jald sampark karein.',
-          ].join('\n'),
+          date: formData.date,
+          guests: formData.guests,
+          time: currentTime,
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({ success: false }));
 
-      if (result.success) {
-        // =============================================
-        // ✅ STEP 2: WHATSAPP NOTIFICATION (CallMeBot FREE)
-        // Reception ke WhatsApp pe message jayega
-        // =============================================
-        try {
-          const whatsappMsg = encodeURIComponent(
-            [
-              '🚩 *Shri Sitaram Seva Trust*',
-              '*━━ New Booking Alert! ━━*',
-              '',
-              `📋 *Booking ID:* ${bookingId}`,
-              `👤 *Name:* ${formData.name}`,
-              `📞 *Phone:* ${formData.phone}`,
-              `🏨 *Room:* ${formData.room_type}`,
-              `📅 *Date:* ${formData.date}`,
-              `👥 *Guests:* ${formData.guests}`,
-              `⏰ *Time:* ${currentTime}`,
-              '',
-              '_Kripya yatri se sampark karein._',
-            ].join('\n')
-          );
-
-          // Reception Number 1
-          fetch(
-            `https://api.callmebot.com/whatsapp.php?phone=919918310009&text=${whatsappMsg}&apikey=YOUR_CALLMEBOT_API_KEY`,
-            { mode: 'no-cors' }
-          ).catch(() => {});
-
-          // Reception Number 2 (optional - agar dono numbers pe chahiye)
-          fetch(
-            `https://api.callmebot.com/whatsapp.php?phone=918303333309&text=${whatsappMsg}&apikey=YOUR_CALLMEBOT_API_KEY_2`,
-            { mode: 'no-cors' }
-          ).catch(() => {});
-
-        } catch {
-          // WhatsApp fail hua toh bhi booking confirm rahegi
-        }
-
+      if (response.ok && result.success) {
         // ✅ SUCCESS: User ko message dikhao
         setSubmitStatus({
           success: true,
@@ -141,9 +81,9 @@ const App = () => {
 
         // Form clear karo
         setFormData({ name: '', phone: '', room_type: 'Non-AC Room', date: '', guests: '2' });
-
       } else {
-        throw new Error('Email bhejne mein problem aayi');
+        console.error('Booking notification failed:', result);
+        throw new Error(result?.error || 'Email bhejne mein problem aayi');
       }
     } catch (error: any) {
       // ❌ ERROR: User ko phone number dikhao
